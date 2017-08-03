@@ -205,7 +205,6 @@ ls -t -d ${BACKUPDIR}/*/  | grep -v "$(ls -t ${BACKUPDIR}/ | head -3)" | xargs r
 
 #remove tmp directory
 echo "removing tmp directory"
-echo "rm -r ${TMPDIR}"
 rm -r ${TMPDIR}
 
 #TODO chown
