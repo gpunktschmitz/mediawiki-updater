@@ -96,35 +96,22 @@ fi
 INSTALLED_VERSION=$(grep -n "wgVersion =" $MEDIAWIKIDIR/includes/DefaultSettings.php | awk -F "'" '{print $2}')
 echo "currently installed version: $INSTALLED_VERSION"
 
-#TODO
-#LATEST_RELEASE="1.23"
-# for $RELEASE in $LATEST_RELEASES; do
-#       while [$RELEASE -ne $INSTALLED_VERSION]; do
-#               if testvercomp $RELEASE ">" $INSTALLED_VERSION; then
-#                       do_update
-#                       break
-#               fi
-#       done
-# done
-
-#TODO pitfall
-# releases: [[1.28.7], [1.29], [1.29-rc.1], [1.28.6]]
-# installed: [1.28.6]
-# version which should be installed: 1.29
+LATEST_RELEASE=$INSTALLED_VERSION
 
 #get releases from https://github.com/wikimedia/mediawiki/releases.atom
-#TODO parse all and find latest one (if new version 1.30 and 1.31-rc.0 is released on one day and the RC is the latest one the script will currently not update to 1.30 but exit)
-LATEST_RELEASE=$(wget -q -O- "https://github.com/wikimedia/mediawiki/releases.atom" | grep -o -P '<title>[^"]*' | sed "s/<title>//g" | sed "s/<\/title>//g" | sed -n 2p)
-echo "latest release found: $LATEST_RELEASE"
+LATEST_RELEASES=$(wget -q -O- "https://github.com/wikimedia/mediawiki/releases.atom" | grep -o -P '<title>[^"]*' | sed "s/<title>//g" | sed "s/<\/title>//g")
+for RELEASE in $LATEST_RELEASES; do
+    if [[ "$RELEASE" =~ [0-9] ]]; then
+	#skip if release candidate
+        if ! grep "\-rc\." <<< $RELEASE &>/dev/null; then
+            if testvercomp $RELEASE "<" $LATEST_RELEASE; then
+                LATEST_RELEASE=$RELEASE
+            fi
+        fi
+    fi
+done
 
-#skip if release candidate
-if grep "\-rc\." <<< $LATEST_RELEASE &>/dev/null; then
-        #TODO handle RC releases (vercomp function currently cannot handle it)
-        #if $SKIP_RC_RELEASE; then
-                echo "latest release is a RC ($LATEST_RELEASE) -> exiting"
-                exit 1
-        #fi
-fi
+echo "latest release found: $LATEST_RELEASE"
 
 #check if latest version is newer
 if testvercomp $LATEST_RELEASE ">" $INSTALLED_VERSION; then
