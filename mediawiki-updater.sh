@@ -165,35 +165,38 @@ cp -r ${MEDIAWIKIDIR}/* ${BACKUPDIR}/${INSTALLED_VERSION}/
 echo "downloading version '$LATEST_RELEASE'"
 wget https://github.com/wikimedia/mediawiki/archive/$LATEST_RELEASE.zip -O ${TMPDIR}/${LATEST_RELEASE}.zip -o /dev/null
 
-#extract downloaded release
-echo "extracting $LATEST_RELEASE"
-unzip -oq ${TMPDIR}/${LATEST_RELEASE}.zip -d ${TMPDIR}
+if unzip -l ${TMPDIR}/${LATEST_RELEASE}.zip &> /dev/null; then
+    #extract downloaded release
+    echo "extracting $LATEST_RELEASE"
+    unzip -oq ${TMPDIR}/${LATEST_RELEASE}.zip -d ${TMPDIR}
 
-#get extracted directory
-NEW_RELEASE_DIRECTORY=`ls -d ${TMPDIR}/*/`
-echo "new release extracted to '${NEW_RELEASE_DIRECTORY}'"
+    #get extracted directory
+    NEW_RELEASE_DIRECTORY=`ls -d ${TMPDIR}/*/`
+    echo "new release extracted to '${NEW_RELEASE_DIRECTORY}'"
 
-#overwrite current installation
-echo "updating installation with new files"
-cp -r ${NEW_RELEASE_DIRECTORY}/* ${MEDIAWIKIDIR}
+    #overwrite current installation
+    echo "updating installation with new files"
+    cp -r ${NEW_RELEASE_DIRECTORY}/* ${MEDIAWIKIDIR}
 
-#updating dependencies
-echo "deleting path ${MEDIAWIKIDIR}/vendor"
-rm -r ${MEDIAWIKIDIR}/vendor
-echo "cloning repo 'https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git'"
-git clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
+    #updating dependencies
+    echo "deleting path ${MEDIAWIKIDIR}/vendor"
+    rm -r ${MEDIAWIKIDIR}/vendor
+    echo "cloning repo 'https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git'"
+    git clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
 
-#remove old backup directory
-echo "removing old backups (keeping last 3)"
-ls -t -d ${BACKUPDIR}/*/  | grep -v "$(ls -t ${BACKUPDIR}/ | head -3)" | xargs rm -r
+    #remove old backup directory
+    echo "removing old backups (keeping last 3)"
+    ls -t -d ${BACKUPDIR}/*/  | grep -v "$(ls -t ${BACKUPDIR}/ | head -3)" | xargs rm -r
 
-#remove tmp directory
-echo "removing tmp directory"
-rm -r ${TMPDIR}
+    #remove tmp directory
+    echo "removing tmp directory"
+    rm -r ${TMPDIR}
 
-#TODO chown
+    #TODO chown
 
-#execute update script
-php ${MEDIAWIKIDIR}/maintenance/update.php --skip-external-dependencies
-# -PROCESS
-
+    #execute update script
+    php ${MEDIAWIKIDIR}/maintenance/update.php --skip-external-dependencies
+    # -PROCESS
+else
+    echo "download (${TMPDIR}/${LATEST_RELEASE}.zip) seems not to be a valid zip file"
+fi
