@@ -180,7 +180,7 @@ if unzip -l ${TMPDIR}/${LATEST_RELEASE}.zip &> /dev/null; then
 
     #updating dependencies
     echo "deleting path ${MEDIAWIKIDIR}/vendor"
-    rm -r ${MEDIAWIKIDIR}/vendor
+    rm -rf ${MEDIAWIKIDIR}/vendor
     echo "cloning repo 'https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git'"
     git clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
 
