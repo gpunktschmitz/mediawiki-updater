@@ -1,7 +1,5 @@
 #!/bin/bash
-#purpose: update mediawiki installation
-#version: 0.3
-#created: 2017-05-01 12:36:32
+#purpose: backup mediawiki installation and update to latest release
 #author(s): Guenther Schmitz <https://www.gpunktschmitz.com>
 #license: CC0 1.0 Universal <https://creativecommons.org/publicdomain/zero/1.0/>
 
