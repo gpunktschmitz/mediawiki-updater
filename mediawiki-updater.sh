@@ -14,7 +14,7 @@ TMPDIR=/tmp/GPUNKTMEDIAWIKIUPDATERTMP
 # -VARIABLES
 
 # +FUNCTIONS
-#version compare function from the interweb (slightly modified to make the call more readable 'testvercomp "1.23.1" "<" "1.28.1"')
+#version compare function from the interweb (slightly modified to make the call more readable 'testvercomp "1.23.1" "<" "1.28.1"' but i really don't know how/why it works how it is now)
 #https://stackoverflow.com/questions/4023830/how-compare-two-strings-in-dot-separated-version-format-in-bash?answertab=votes#tab-top
 vercomp () {
     if [[ $1 == $2 ]]
@@ -63,25 +63,25 @@ testvercomp () {
 }
 
 backupmysqldb () {
-        DB_TYPE=`grep -n "wgDBtype =" $MEDIAWIKIDIR/LocalSettings.php | awk -F '"' '{print $2}'`
-        echo "database type: $DB_TYPE"
+    DB_TYPE=`grep -n "wgDBtype =" $MEDIAWIKIDIR/LocalSettings.php | awk -F '"' '{print $2}'`
+    echo "database type: $DB_TYPE"
 
-        if [ "$DB_TYPE" = "mysql" ]; then
-                local DB_SERVER=$(grep "wgDBserver =" $MEDIAWIKIDIR/LocalSettings.php)
-                local DB_SERVER=${DB_SERVER:15:-2}
-                local DB_NAME=$(grep "wgDBname =" $MEDIAWIKIDIR/LocalSettings.php)
-                local DB_NAME=${DB_NAME:13:-2}
-                local DB_USER=$(grep "wgDBuser =" $MEDIAWIKIDIR/LocalSettings.php)
-                local DB_USER=${DB_USER:13:-2}
-                local DB_PW=$(grep "wgDBpassword =" $MEDIAWIKIDIR/LocalSettings.php)
-                local DB_PW=${DB_PW:17:-2}
+    if [ "$DB_TYPE" = "mysql" ]; then
+        local DB_SERVER=$(grep "wgDBserver =" $MEDIAWIKIDIR/LocalSettings.php)
+        local DB_SERVER=${DB_SERVER:15:-2}
+        local DB_NAME=$(grep "wgDBname =" $MEDIAWIKIDIR/LocalSettings.php)
+        local DB_NAME=${DB_NAME:13:-2}
+        local DB_USER=$(grep "wgDBuser =" $MEDIAWIKIDIR/LocalSettings.php)
+        local DB_USER=${DB_USER:13:-2}
+        local DB_PW=$(grep "wgDBpassword =" $MEDIAWIKIDIR/LocalSettings.php)
+        local DB_PW=${DB_PW:17:-2}
 
-                echo "backing up database to '$BACKUPDIR/$DB_NAME.sql'"
-                mysqldump -u $DB_USER -p${DB_PW} ${DB_NAME} > ${BACKUPDIR}/${DB_NAME}.sql
-        else
-                echo "database type is not 'mysql' (set BACKUP_MYSQL_DB to 'false' to continue without a backup created by this script) -> exiting"
-                exit 1
-        fi
+        echo "backing up database to '$BACKUPDIR/$DB_NAME.sql'"
+        mysqldump -u $DB_USER -p${DB_PW} ${DB_NAME} > ${BACKUPDIR}/${DB_NAME}.sql
+    else
+        echo "database type is not 'mysql' (set BACKUP_MYSQL_DB to 'false' to continue without a backup created by this script) -> exiting"
+        exit 1
+    fi
 }
 # -FUNCTIONS
 
@@ -91,7 +91,6 @@ if [ ! -f $MEDIAWIKIDIR/LocalSettings.php ]; then
     echo "file 'LocalSettings.php' not found in directory '$MEDIAWIKIDIR'!"
     exit 1
 fi
-
 
 #get mediawiki version from MEDIAWIKIDIR
 INSTALLED_VERSION=$(grep -n "wgVersion =" $MEDIAWIKIDIR/includes/DefaultSettings.php | awk -F "'" '{print $2}')
@@ -129,30 +128,30 @@ fi
 
 #check if latest version is newer
 if testvercomp $LATEST_RELEASE ">" $INSTALLED_VERSION; then
-        echo "no newer version found on the interweb -> exiting"
-        exit 1
+    echo "no newer version found on the interweb -> exiting"
+    exit 1
 fi
 
 #if tmp directory exists delete it/append "_{int}"
 if [ -d $TMPDIR ]; then
-        COUNTER=1
-        TMPBASEDIR=$TMPDIR
-        while [ -d $TMPDIR ]; do
-                TMPDIR="${TMPBASEDIR}_${COUNTER}"
-                COUNTER=$[COUNTER + 1]
-        done
+    COUNTER=1
+    TMPBASEDIR=$TMPDIR
+    while [ -d $TMPDIR ]; do
+        TMPDIR="${TMPBASEDIR}_${COUNTER}"
+        COUNTER=$[COUNTER + 1]
+    done
 fi
 
 #create tmp directory if not exists
 if [ ! -d $TMPDIR ]; then
-        mkdir $TMPDIR
-        echo "temp directory '$BACKUPDIR' created"
+    mkdir $TMPDIR
+    echo "temp directory '$BACKUPDIR' created"
 fi
 
 #create backup directory if not exists
 if [ ! -d $BACKUPDIR ]; then
-        mkdir $BACKUPDIR
-        echo "backup directory '$BACKUPDIR' created"
+    mkdir $BACKUPDIR
+    echo "backup directory '$BACKUPDIR' created"
 fi
 
 #create backup timestamp directory
@@ -160,14 +159,14 @@ TIMESTAMP=`date +%Y%m%d_%H%M%S`
 BACKUPDIR="${BACKUPDIR}/${TIMESTAMP}"
 echo $BACKUPDIR
 if [ ! -d $BACKUPDIR ]; then
-        mkdir $BACKUPDIR
-        echo "backup directory '$BACKUPDIR' created"
+    mkdir $BACKUPDIR
+    echo "backup directory '$BACKUPDIR' created"
 fi
 
 #backup mediawiki database
 if $BACKUP_MYSQL_DB; then
-        echo "trying to backup database"
-        backupmysqldb
+    echo "trying to backup database"
+    backupmysqldb
 fi
 
 #copy $MEDIAWIKIDIR to $BACKUPDIR
