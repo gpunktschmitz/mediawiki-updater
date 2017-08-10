@@ -17,10 +17,18 @@ mediawiki-updater does the following:
 
 ## requirements
 
-The script uses the following executables:
+### bash script
+The bash script uses the following executables:
 
 * git
 * php
 * grep
 * sed
 * awk
+
+### PowerShell script
+The PowerShell script uses the following executables:
+
+* mysqldump
+* git
+* php
