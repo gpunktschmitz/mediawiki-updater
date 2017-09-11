@@ -11,6 +11,14 @@ BACKUPDIR=/home/gpunktschmitz/BACKUP/GPUNKTMEDIAWIKIUPDATER
 TMPDIR=/tmp/GPUNKTMEDIAWIKIUPDATERTMP
 #TODO CHOWNUSER=wwwrun
 #TODO CHOWNGROUP=wwwrun
+AWKEXECUTABLE=$(which awk)
+SEDEXECUTABLE=$(which sed)
+TAREXECUTABLE=$(which tar)
+GREPEXECUTABLE=$(which grep)
+WGETEXECUTABLE=$(which wget)
+UNZIPEXECUTABLE=$(which unzip)
+GUNZIPZEXECUTABLE=$(which gunzip)
+MYSQLDUMPEXECUTABLE=$(which mysqldump)
 # -VARIABLES
 
 # +FUNCTIONS
@@ -63,21 +71,21 @@ testvercomp () {
 }
 
 backupmysqldb () {
-    DB_TYPE=`grep -n "wgDBtype =" $MEDIAWIKIDIR/LocalSettings.php | awk -F '"' '{print $2}'`
-    echo "database type: $DB_TYPE"
+    DB_TYPE=$(${GREPEXECUTABLE} -n "wgDBtype =" ${MEDIAWIKIDIR}/LocalSettings.php | $AWKEXECUTABLE -F '"' '{print $2}')
+    echo "database type: ${DB_TYPE}"
 
     if [ "$DB_TYPE" = "mysql" ]; then
-        local DB_SERVER=$(grep "wgDBserver =" $MEDIAWIKIDIR/LocalSettings.php)
+        local DB_SERVER=$(${GREPEXECUTABLE} "wgDBserver =" ${MEDIAWIKIDIR}/LocalSettings.php)
         local DB_SERVER=${DB_SERVER:15:-2}
-        local DB_NAME=$(grep "wgDBname =" $MEDIAWIKIDIR/LocalSettings.php)
+        local DB_NAME=$(${GREPEXECUTABLE} "wgDBname =" ${MEDIAWIKIDIR}/LocalSettings.php)
         local DB_NAME=${DB_NAME:13:-2}
-        local DB_USER=$(grep "wgDBuser =" $MEDIAWIKIDIR/LocalSettings.php)
+        local DB_USER=$(${GREPEXECUTABLE} "wgDBuser =" ${MEDIAWIKIDIR}/LocalSettings.php)
         local DB_USER=${DB_USER:13:-2}
-        local DB_PW=$(grep "wgDBpassword =" $MEDIAWIKIDIR/LocalSettings.php)
+        local DB_PW=$(${GREPEXECUTABLE} "wgDBpassword =" ${MEDIAWIKIDIR}/LocalSettings.php)
         local DB_PW=${DB_PW:17:-2}
 
-        echo "backing up database to '$BACKUPDIR/$DB_NAME.sql'"
-        mysqldump -u $DB_USER -p${DB_PW} ${DB_NAME} > ${BACKUPDIR}/${DB_NAME}.sql
+        echo "backing up database to '${BACKUPDIR}/${DB_NAME}.sql'"
+        ${MYSQLDUMPEXECUTABLE} -u ${DB_USER} -p${DB_PW} ${DB_NAME} > ${BACKUPDIR}/${DB_NAME}.sql
     else
         echo "database type is not 'mysql' (set BACKUP_MYSQL_DB to 'false' to continue without a backup created by this script) -> exiting"
         exit 1
@@ -87,116 +95,137 @@ backupmysqldb () {
 
 # +PROCESS
 #check if "LocalSettings.php" exists
-if [ ! -f $MEDIAWIKIDIR/LocalSettings.php ]; then
-    echo "file 'LocalSettings.php' not found in directory '$MEDIAWIKIDIR'!"
+if [ ! -f ${MEDIAWIKIDIR}/LocalSettings.php ]; then
+    echo "file 'LocalSettings.php' not found in directory '${MEDIAWIKIDIR}'!"
     exit 1
 fi
 
 #get mediawiki version from MEDIAWIKIDIR
-INSTALLED_VERSION=$(grep -n "wgVersion =" $MEDIAWIKIDIR/includes/DefaultSettings.php | awk -F "'" '{print $2}')
-echo "currently installed version: $INSTALLED_VERSION"
+INSTALLED_VERSION=$(${GREPEXECUTABLE} -n "wgVersion =" ${MEDIAWIKIDIR}/includes/DefaultSettings.php | ${AWKEXECUTABLE} -F "'" '{print $2}')
+echo "currently installed version: ${INSTALLED_VERSION}"
 
-LATEST_RELEASE=$INSTALLED_VERSION
+LATEST_RELEASE=${INSTALLED_VERSION}
 
 #get releases from https://github.com/wikimedia/mediawiki/releases.atom
-LATEST_RELEASES=$(wget -q -O- "https://github.com/wikimedia/mediawiki/releases.atom" | grep -o -P '<title>[^"]*' | sed "s/<title>//g" | sed "s/<\/title>//g")
-for RELEASE in $LATEST_RELEASES; do
-    if [[ "$RELEASE" =~ [0-9] ]]; then
+LATEST_RELEASES=$(${WGETEXECUTABLE} -q -O- "https://github.com/wikimedia/mediawiki/releases.atom" | ${GREPEXECUTABLE} -o -P '<title>[^"]*' | ${SEDEXECUTABLE} "s/<title>//g" | ${SEDEXECUTABLE} "s/<\/title>//g")
+for RELEASE in ${LATEST_RELEASES}; do
+    if [[ "${RELEASE}" =~ [0-9] ]]; then
 	#skip if release candidate
-        if ! grep "\-rc\." <<< $RELEASE &>/dev/null; then
-            if testvercomp $RELEASE "<" $LATEST_RELEASE; then
-                LATEST_RELEASE=$RELEASE
+        if ! ${GREPEXECUTABLE} "\-rc\." <<< ${RELEASE} &>/dev/null; then
+            if testvercomp ${RELEASE} "<" ${LATEST_RELEASE}; then
+                LATEST_RELEASE=${RELEASE}
             fi
         fi
     fi
 done
 
-echo "latest release found: $LATEST_RELEASE"
+echo "latest release found: ${LATEST_RELEASE}"
 
 #check if latest version is newer
-if testvercomp $LATEST_RELEASE ">" $INSTALLED_VERSION; then
+if testvercomp ${LATEST_RELEASE} ">" ${INSTALLED_VERSION}; then
     echo "no newer version found on the interweb -> exiting"
     exit 1
 fi
 
 #if tmp directory exists delete it/append "_{int}"
-if [ -d $TMPDIR ]; then
+if [ -d ${TMPDIR} ]; then
     COUNTER=1
-    TMPBASEDIR=$TMPDIR
-    while [ -d $TMPDIR ]; do
+    TMPBASEDIR=${TMPDIR}
+    while [ -d ${TMPDIR} ]; do
         TMPDIR="${TMPBASEDIR}_${COUNTER}"
         COUNTER=$[COUNTER + 1]
     done
 fi
 
 #create tmp directory if not exists
-if [ ! -d $TMPDIR ]; then
-    mkdir $TMPDIR
-    echo "temp directory '$BACKUPDIR' created"
+if [ ! -d ${TMPDIR} ]; then
+    mkdir ${TMPDIR}
+    echo "temp directory '${BACKUPDIR}' created"
 fi
 
 #create backup directory if not exists
-if [ ! -d $BACKUPDIR ]; then
-    mkdir $BACKUPDIR
-    echo "backup directory '$BACKUPDIR' created"
+if [ ! -d ${BACKUPDIR} ]; then
+    mkdir ${BACKUPDIR}
+    echo "backup directory '${BACKUPDIR}' created"
 fi
 
 #create backup timestamp directory
-TIMESTAMP=`date +%Y%m%d_%H%M%S`
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUPDIR="${BACKUPDIR}/${TIMESTAMP}"
-echo $BACKUPDIR
-if [ ! -d $BACKUPDIR ]; then
-    mkdir $BACKUPDIR
-    echo "backup directory '$BACKUPDIR' created"
+echo ${BACKUPDIR}
+if [ ! -d ${BACKUPDIR} ]; then
+    mkdir ${BACKUPDIR}
+    echo "backup directory '${BACKUPDIR}' created"
 fi
 
 #backup mediawiki database
-if $BACKUP_MYSQL_DB; then
+if ${BACKUP_MYSQL_DB}; then
     echo "trying to backup database"
     backupmysqldb
 fi
 
 #copy $MEDIAWIKIDIR to $BACKUPDIR
-echo "copying '$MEDIAWIKIDIR' to '$BACKUPDIR/$INSTALLED_VERSION'"
+echo "copying '${MEDIAWIKIDIR}' to '${BACKUPDIR}/${INSTALLED_VERSION}'"
 mkdir ${BACKUPDIR}/${INSTALLED_VERSION}
 cp -r ${MEDIAWIKIDIR}/* ${BACKUPDIR}/${INSTALLED_VERSION}/
 
-#download new mediawiki version
-echo "downloading version '$LATEST_RELEASE'"
-wget https://github.com/wikimedia/mediawiki/archive/$LATEST_RELEASE.zip -O ${TMPDIR}/${LATEST_RELEASE}.zip -o /dev/null
+if [[ ${UNZIPEXECUTABLE} ]]; then
+	#download new mediawiki version
+	echo "downloading version '${LATEST_RELEASE}' (zip)"
+	${WGETEXECUTABLE} https://github.com/wikimedia/mediawiki/archive/${LATEST_RELEASE}.zip -O ${TMPDIR}/${LATEST_RELEASE}.zip -o /dev/null
 
-if unzip -l ${TMPDIR}/${LATEST_RELEASE}.zip &> /dev/null; then
-    #extract downloaded release
-    echo "extracting $LATEST_RELEASE"
-    unzip -oq ${TMPDIR}/${LATEST_RELEASE}.zip -d ${TMPDIR}
-
-    #get extracted directory
-    NEW_RELEASE_DIRECTORY=`ls -d ${TMPDIR}/*/`
-    echo "new release extracted to '${NEW_RELEASE_DIRECTORY}'"
-
-    #overwrite current installation
-    echo "updating installation with new files"
-    cp -r ${NEW_RELEASE_DIRECTORY}/* ${MEDIAWIKIDIR}
-
-    #updating dependencies
-    echo "deleting path ${MEDIAWIKIDIR}/vendor"
-    rm -rf ${MEDIAWIKIDIR}/vendor
-    echo "cloning repo 'https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git'"
-    git clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
-
-    #remove old backup directory
-    echo "removing old backups (keeping last 3)"
-    ls -t -d ${BACKUPDIR}/*/  | grep -v "$(ls -t ${BACKUPDIR}/ | head -3)" | xargs rm -r
-
-    #remove tmp directory
-    echo "removing tmp directory"
-    rm -r ${TMPDIR}
-
-    #TODO chown
-
-    #execute update script
-    php ${MEDIAWIKIDIR}/maintenance/update.php --skip-external-dependencies
-    # -PROCESS
+	if ${UNZIPEXECUTABLE} -l ${TMPDIR}/${LATEST_RELEASE}.zip &> /dev/null; then
+		#extract downloaded release
+		echo "extracting ${LATEST_RELEASE}"
+		${UNZIPEXECUTABLE} -oq ${TMPDIR}/${LATEST_RELEASE}.zip -d ${TMPDIR}
+	else
+		echo "download (${TMPDIR}/${LATEST_RELEASE}.zip) seems not to be a valid zip file"
+	fi
+elif [[ ${TAREXECUTABLE} ]] && [[ ${GUNZIPEXECUTABLE} ]]; then
+	#download new mediawiki version
+	echo "downloading version '${LATEST_RELEASE}' (tar.gz)"
+	${WGETEXECUTABLE} https://github.com/wikimedia/mediawiki/archive/${LATEST_RELEASE}.tar.gz -O ${TMPDIR}/${LATEST_RELEASE}.tar.gz -o /dev/null
+	
+	#extract downloaded release                                                                                          
+	echo "extracting $LATEST_RELEASE"                                                                  
+	pushd ${TMPDIR}
+	if $(${TAREXECUTABLE} -tzf mediawiki-1.29.0.tar.gz &>/dev/null); then                                                                                      
+		tar -xzf ${LATEST_RELEASE}.tar                                                                                        
+		cd $(popd)
+	else
+		cd $(popd)
+		echo "download (${TMPDIR}/${LATEST_RELEASE}.tar.gz) seems not to be a valid tar.gz file"
+	fi
 else
-    echo "download (${TMPDIR}/${LATEST_RELEASE}.zip) seems not to be a valid zip file"
+    echo "no tool (unzip or tar) found .. cannot extract new release."
 fi
+
+#get extracted directory
+NEW_RELEASE_DIRECTORY=$(ls -d ${TMPDIR}/*/)
+if [[ ${NEW_RELEASE_DIRECTORY} ]]; then
+	echo "new release extracted to '${NEW_RELEASE_DIRECTORY}'"
+
+	#overwrite current installation
+	echo "updating installation with new files"
+	cp -r ${NEW_RELEASE_DIRECTORY}/* ${MEDIAWIKIDIR}
+
+	#updating dependencies
+	echo "deleting path ${MEDIAWIKIDIR}/vendor"
+	rm -rf ${MEDIAWIKIDIR}/vendor
+	echo "cloning repo 'https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git'"
+	git clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
+fi
+
+#remove old backup directory
+echo "removing old backups (keeping last 3)"
+ls -t -d ${BACKUPDIR}/*/  | ${GREPEXECUTABLE} -v "$(ls -t ${BACKUPDIR}/ | head -3)" | xargs rm -r
+
+#remove tmp directory
+echo "removing tmp directory"
+rm -r ${TMPDIR}
+
+#TODO chown
+
+#execute update script
+php ${MEDIAWIKIDIR}/maintenance/update.php --skip-external-dependencies
+# -PROCESS
