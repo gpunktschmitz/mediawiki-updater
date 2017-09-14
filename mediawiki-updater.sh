@@ -191,7 +191,7 @@ elif [[ ${TAREXECUTABLE} ]] && [[ ${GUNZIPEXECUTABLE} ]]; then
 	echo "extracting $LATEST_RELEASE"                                                                  
 	pushd ${TMPDIR}
 	if $(${TAREXECUTABLE} -tzf ${LATEST_RELEASE}.tar.gz &>/dev/null); then                                                                                      
-		tar -xzf ${LATEST_RELEASE}.tar                                                                                        
+		${TAREXECUTABLE} -xzf ${LATEST_RELEASE}.tar                                                                                        
 		cd $(popd)
 	else
 		cd $(popd)
@@ -215,7 +215,7 @@ if [[ ${NEW_RELEASE_DIRECTORY} ]]; then
 	rm -rf ${MEDIAWIKIDIR}/vendor
 	echo "cloning repo 'https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git'"
 	if [[ ${GITEXECUTABLE} ]]; then
-		git clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
+		${GITEXECUTABLE} clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
 	else
 		echo "git executable not found - the vendors could not be downloaded"
 	fi
