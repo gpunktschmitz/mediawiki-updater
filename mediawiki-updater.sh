@@ -19,7 +19,13 @@ WGETEXECUTABLE=$(which wget)
 UNZIPEXECUTABLE=$(which unzip)
 GUNZIPZEXECUTABLE=$(which gunzip)
 MYSQLDUMPEXECUTABLE=$(which mysqldump)
-GITEXECUTABLE=$(which mysqldump)
+GITEXECUTABLE=$(which git)
+MKDIREXECUTABLE=$(which mkdir)
+PHPEXECUTABLE=$(which php)
+XARGSEXECUTABLE=$(which xargs)
+PUSHDEXECUTABLE=$(which pushd)
+POPDEXECUTABLE=$(which popd)
+HEADEXECUTABLE=$(which head)
 # -VARIABLES
 
 # +FUNCTIONS
@@ -140,13 +146,13 @@ fi
 
 #create tmp directory if not exists
 if [ ! -d ${TMPDIR} ]; then
-    mkdir ${TMPDIR}
+    ${MKDIREXECUTABLE} ${TMPDIR}
     echo "temp directory '${BACKUPDIR}' created"
 fi
 
 #create backup directory if not exists
 if [ ! -d ${BACKUPDIR} ]; then
-    mkdir ${BACKUPDIR}
+    ${MKDIREXECUTABLE} ${BACKUPDIR}
     echo "backup directory '${BACKUPDIR}' created"
 fi
 
@@ -155,7 +161,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUPDIR="${BACKUPDIR}/${TIMESTAMP}"
 echo ${BACKUPDIR}
 if [ ! -d ${BACKUPDIR} ]; then
-    mkdir ${BACKUPDIR}
+    ${MKDIREXECUTABLE} ${BACKUPDIR}
     echo "backup directory '${BACKUPDIR}' created"
 fi
 
@@ -167,7 +173,7 @@ fi
 
 #copy $MEDIAWIKIDIR to $BACKUPDIR
 echo "copying '${MEDIAWIKIDIR}' to '${BACKUPDIR}/${INSTALLED_VERSION}'"
-mkdir ${BACKUPDIR}/${INSTALLED_VERSION}
+${MKDIREXECUTABLE} ${BACKUPDIR}/${INSTALLED_VERSION}
 cp -r ${MEDIAWIKIDIR}/* ${BACKUPDIR}/${INSTALLED_VERSION}/
 
 if [[ ${UNZIPEXECUTABLE} ]]; then
@@ -189,12 +195,12 @@ elif [[ ${TAREXECUTABLE} ]] && [[ ${GUNZIPEXECUTABLE} ]]; then
 	
 	#extract downloaded release                                                                                          
 	echo "extracting $LATEST_RELEASE"                                                                  
-	pushd ${TMPDIR}
+	${PUSHDEXECUTABLE} ${TMPDIR}
 	if $(${TAREXECUTABLE} -tzf ${LATEST_RELEASE}.tar.gz &>/dev/null); then                                                                                      
 		${TAREXECUTABLE} -xzf ${LATEST_RELEASE}.tar                                                                                        
-		cd $(popd)
+		cd $(${POPDEXECUTABLE})
 	else
-		cd $(popd)
+		cd $(%{POPDEXECUTABLE})
 		echo "download (${TMPDIR}/${LATEST_RELEASE}.tar.gz) seems not to be a valid tar.gz file"
 	fi
 else
@@ -223,7 +229,7 @@ fi
 
 #remove old backup directory
 echo "removing old backups (keeping last 3)"
-ls -t -d ${BACKUPDIR}/*/  | ${GREPEXECUTABLE} -v "$(ls -t ${BACKUPDIR}/ | head -3)" | xargs rm -r
+ls -t -d ${BACKUPDIR}/*/  | ${GREPEXECUTABLE} -v "$(ls -t ${BACKUPDIR}/ | ${HEADEXECUTABLE} -3)" | ${XARGSEXECUTABLE} rm -r
 
 #remove tmp directory
 echo "removing tmp directory"
@@ -232,5 +238,5 @@ rm -r ${TMPDIR}
 #TODO chown
 
 #execute update script
-php ${MEDIAWIKIDIR}/maintenance/update.php --skip-external-dependencies
+${PHPEXECUTABLE} ${MEDIAWIKIDIR}/maintenance/update.php --skip-external-dependencies
 # -PROCESS
