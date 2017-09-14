@@ -25,6 +25,16 @@ The bash script uses the following executables:
 * grep
 * sed
 * awk
+* tar
+* wget
+* unzip
+* gunzip
+* mysqldump
+* mkdir
+* xargs
+* pushd
+* popd
+* head
 
 ### PowerShell script
 The PowerShell script uses the following executables:
