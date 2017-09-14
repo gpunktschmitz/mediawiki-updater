@@ -19,6 +19,7 @@ WGETEXECUTABLE=$(which wget)
 UNZIPEXECUTABLE=$(which unzip)
 GUNZIPZEXECUTABLE=$(which gunzip)
 MYSQLDUMPEXECUTABLE=$(which mysqldump)
+GITEXECUTABLE=$(which mysqldump)
 # -VARIABLES
 
 # +FUNCTIONS
@@ -213,7 +214,11 @@ if [[ ${NEW_RELEASE_DIRECTORY} ]]; then
 	echo "deleting path ${MEDIAWIKIDIR}/vendor"
 	rm -rf ${MEDIAWIKIDIR}/vendor
 	echo "cloning repo 'https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git'"
-	git clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
+	if [[ ${GITEXECUTABLE} ]]; then
+		git clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
+	else
+		echo "git executable not found - the vendors could not be downloaded"
+	fi
 fi
 
 #remove old backup directory
