@@ -205,6 +205,7 @@ elif [[ ${TAREXECUTABLE} ]] && [[ ${GUNZIPEXECUTABLE} ]]; then
 	fi
 else
     echo "no tool (unzip or tar) found .. cannot extract new release."
+    exit 1
 fi
 
 #get extracted directory
