@@ -189,7 +189,7 @@ elif [[ ${TAREXECUTABLE} ]] && [[ ${GUNZIPEXECUTABLE} ]]; then
 	#extract downloaded release                                                                                          
 	echo "extracting $LATEST_RELEASE"                                                                  
 	pushd ${TMPDIR}
-	if $(${TAREXECUTABLE} -tzf mediawiki-1.29.0.tar.gz &>/dev/null); then                                                                                      
+	if $(${TAREXECUTABLE} -tzf ${LATEST_RELEASE}.tar.gz &>/dev/null); then                                                                                      
 		tar -xzf ${LATEST_RELEASE}.tar                                                                                        
 		cd $(popd)
 	else
