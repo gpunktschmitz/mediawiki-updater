@@ -6,26 +6,22 @@
 # +VARIABLES
 #TODO SKIP_RC_RELEASE=true
 BACKUP_MYSQL_DB=true
-MEDIAWIKIDIR=/home/gpunktschmitz/www/mediawiki_local/public
+MEDIAWIKIDIR=/home/gpunktschmitz/www/mediawiki_local/public2
 BACKUPDIR=/home/gpunktschmitz/BACKUP/GPUNKTMEDIAWIKIUPDATER
 TMPDIR=/tmp/GPUNKTMEDIAWIKIUPDATERTMP
+#--
+AWKEXECUTABLE=$(which awk)
+BASENAMEEXECUTABLE=$(which basename)
 #TODO CHOWNUSER=wwwrun
 #TODO CHOWNGROUP=wwwrun
-AWKEXECUTABLE=$(which awk)
+GREPEXECUTABLE=$(which grep)
+HEADEXECUTABLE=$(which head)
+MKDIREXECUTABLE=$(which mkdir)
+MYSQLDUMPEXECUTABLE=$(which mysqldump)
+PHPEXECUTABLE=$(which php)
 SEDEXECUTABLE=$(which sed)
 TAREXECUTABLE=$(which tar)
-GREPEXECUTABLE=$(which grep)
 WGETEXECUTABLE=$(which wget)
-UNZIPEXECUTABLE=$(which unzip)
-GUNZIPZEXECUTABLE=$(which gunzip)
-MYSQLDUMPEXECUTABLE=$(which mysqldump)
-GITEXECUTABLE=$(which git)
-MKDIREXECUTABLE=$(which mkdir)
-PHPEXECUTABLE=$(which php)
-XARGSEXECUTABLE=$(which xargs)
-PUSHDEXECUTABLE=$(which pushd)
-POPDEXECUTABLE=$(which popd)
-HEADEXECUTABLE=$(which head)
 # -VARIABLES
 
 # +FUNCTIONS
@@ -147,22 +143,22 @@ fi
 #create tmp directory if not exists
 if [ ! -d ${TMPDIR} ]; then
     ${MKDIREXECUTABLE} ${TMPDIR}
-    echo "temp directory '${BACKUPDIR}' created"
+    echo "creating directory for temp: '${TMPDIR}'"
 fi
 
 #create backup directory if not exists
 if [ ! -d ${BACKUPDIR} ]; then
     ${MKDIREXECUTABLE} ${BACKUPDIR}
-    echo "backup directory '${BACKUPDIR}' created"
+    echo "creating directory for backup: '${BACKUPDIR}'"
 fi
 
 #create backup timestamp directory
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUPBASEDIR=${BACKUPDIR}
 BACKUPDIR="${BACKUPDIR}/${TIMESTAMP}"
-echo ${BACKUPDIR}
 if [ ! -d ${BACKUPDIR} ]; then
     ${MKDIREXECUTABLE} ${BACKUPDIR}
-    echo "backup directory '${BACKUPDIR}' created"
+    echo "creating directory for backup: '${BACKUPDIR}'"
 fi
 
 #backup mediawiki database
@@ -171,73 +167,79 @@ if ${BACKUP_MYSQL_DB}; then
     backupmysqldb
 fi
 
-#copy $MEDIAWIKIDIR to $BACKUPDIR
-echo "copying '${MEDIAWIKIDIR}' to '${BACKUPDIR}/${INSTALLED_VERSION}'"
+#move $MEDIAWIKIDIR to $BACKUPDIR
+echo "moving '${MEDIAWIKIDIR}' to '${BACKUPDIR}/${INSTALLED_VERSION}'"
 ${MKDIREXECUTABLE} ${BACKUPDIR}/${INSTALLED_VERSION}
-cp -r ${MEDIAWIKIDIR}/* ${BACKUPDIR}/${INSTALLED_VERSION}/
+mv ${MEDIAWIKIDIR}/* ${BACKUPDIR}/${INSTALLED_VERSION}
 
-if [[ ${UNZIPEXECUTABLE} ]]; then
+if [[ ${TAREXECUTABLE} ]]; then
 	#download new mediawiki version
-	echo "downloading version '${LATEST_RELEASE}' (zip)"
-	${WGETEXECUTABLE} https://github.com/wikimedia/mediawiki/archive/${LATEST_RELEASE}.zip -O ${TMPDIR}/${LATEST_RELEASE}.zip -o /dev/null
+    VERSION=$(echo ${LATEST_RELEASE} | ${AWKEXECUTABLE} -F "." '{ print $1 "." $2 }')
+    URL="https://releases.wikimedia.org/mediawiki/${VERSION}/mediawiki-${LATEST_RELEASE}.tar.gz"
+    echo "downloading version '${LATEST_RELEASE}' from $URL"
+	${WGETEXECUTABLE} ${URL} -O ${TMPDIR}/${LATEST_RELEASE}.tar.gz -o /dev/null
 
-	if ${UNZIPEXECUTABLE} -l ${TMPDIR}/${LATEST_RELEASE}.zip &> /dev/null; then
-		#extract downloaded release
-		echo "extracting ${LATEST_RELEASE}"
-		${UNZIPEXECUTABLE} -oq ${TMPDIR}/${LATEST_RELEASE}.zip -d ${TMPDIR}
-	else
-		echo "download (${TMPDIR}/${LATEST_RELEASE}.zip) seems not to be a valid zip file"
-	fi
-elif [[ ${TAREXECUTABLE} ]] && [[ ${GUNZIPEXECUTABLE} ]]; then
-	#download new mediawiki version
-	echo "downloading version '${LATEST_RELEASE}' (tar.gz)"
-	${WGETEXECUTABLE} https://github.com/wikimedia/mediawiki/archive/${LATEST_RELEASE}.tar.gz -O ${TMPDIR}/${LATEST_RELEASE}.tar.gz -o /dev/null
-	
 	#extract downloaded release                                                                                          
-	echo "extracting $LATEST_RELEASE"                                                                  
-	${PUSHDEXECUTABLE} ${TMPDIR}
-	if $(${TAREXECUTABLE} -tzf ${LATEST_RELEASE}.tar.gz &>/dev/null); then                                                                                      
-		${TAREXECUTABLE} -xzf ${LATEST_RELEASE}.tar                                                                                        
-		cd $(${POPDEXECUTABLE})
+	echo "extracting '${TMPDIR}/${LATEST_RELEASE}.tar.gz'"
+	pushd ${TMPDIR} &>/dev/null
+	if ${TAREXECUTABLE} -tzf ${LATEST_RELEASE}.tar.gz &>/dev/null; then
+	    ${TAREXECUTABLE} -xzf ${LATEST_RELEASE}.tar.gz
+	    popd &>/dev/null
 	else
-		cd $(%{POPDEXECUTABLE})
-		echo "download (${TMPDIR}/${LATEST_RELEASE}.tar.gz) seems not to be a valid tar.gz file"
+	    popd &>/dev/null
+	    echo "download (${TMPDIR}/${LATEST_RELEASE}.tar.gz) seems not to be a valid tar.gz file"
+	    exit 1
 	fi
 else
-    echo "no tool (unzip or tar) found .. cannot extract new release."
+    echo "cannot extract new release"
     exit 1
 fi
 
 #get extracted directory
 NEW_RELEASE_DIRECTORY=$(ls -d ${TMPDIR}/*/)
 if [[ ${NEW_RELEASE_DIRECTORY} ]]; then
-	echo "new release extracted to '${NEW_RELEASE_DIRECTORY}'"
-
-	#overwrite current installation
+	#move new version to mediawiki directory
 	echo "updating installation with new files"
-	cp -r ${NEW_RELEASE_DIRECTORY}/* ${MEDIAWIKIDIR}
-
-	#updating dependencies
-	echo "deleting path ${MEDIAWIKIDIR}/vendor"
-	rm -rf ${MEDIAWIKIDIR}/vendor
-	echo "cloning repo 'https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git'"
-	if [[ ${GITEXECUTABLE} ]]; then
-		${GITEXECUTABLE} clone https://gerrit.wikimedia.org/r/p/mediawiki/vendor.git ${MEDIAWIKIDIR}/vendor
-	else
-		echo "git executable not found - the vendors could not be downloaded"
-	fi
+	mv ${NEW_RELEASE_DIRECTORY}/* ${MEDIAWIKIDIR}
 fi
+
+#copy LocalSettings.php to new version
+echo "copying LocalSettings.php from previous version"
+cp ${BACKUPDIR}/${INSTALLED_VERSION}/LocalSettings.php ${MEDIAWIKIDIR}/LocalSettings.php
+
+#copy images from old installation to new version
+echo "copying images from previous version"
+cp -a ${BACKUPDIR}/${INSTALLED_VERSION}/images ${MEDIAWIKIDIR}
+
+#copy skins from old installation to new version
+echo "copying skins from previous version"
+for SKINPATH in `ls -d ${BACKUPDIR}/${INSTALLED_VERSION}/skins/*/`; do
+    SKINNAME=$(${BASENAMEEXECUTABLE} ${SKINPATH})
+    if [ ! -d ${MEDIAWIKIDIR}/skins/${SKINNAME} ]; then
+        cp -a ${SKINPATH} ${MEDIAWIKIDIR}/skins
+    fi
+done
+
+#copy extensions from old installation if not existing in new version
+echo "copying extensions from previous version"
+for EXTENSIONPATH in `ls -d ${BACKUPDIR}/${INSTALLED_VERSION}/extensions/*/`; do
+    EXTENSIONNAME=$(${BASENAMEEXECUTABLE} ${EXTENSIONPATH})
+    if [ ! -d ${MEDIAWIKIDIR}/extensions/${EXTENSIONNAME} ]; then
+        cp -a ${EXTENSIONPATH} ${MEDIAWIKIDIR}/extensions
+    fi
+done
 
 #remove old backup directory
 echo "removing old backups (keeping last 3)"
-ls -t -d ${BACKUPDIR}/*/  | ${GREPEXECUTABLE} -v "$(ls -t ${BACKUPDIR}/ | ${HEADEXECUTABLE} -3)" | ${XARGSEXECUTABLE} rm -r
+for OLDBACKUPDIR in `ls -t -d ${BACKUPBASEDIR}/*/ | ${GREPEXECUTABLE} -v "$(ls -t ${BACKUPBASEDIR}/ | ${HEADEXECUTABLE} -3)"`; do
+    rm -r ${OLDBACKUPDIR}
+done
 
 #remove tmp directory
-echo "removing tmp directory"
 rm -r ${TMPDIR}
 
 #TODO chown
 
 #execute update script
-${PHPEXECUTABLE} ${MEDIAWIKIDIR}/maintenance/update.php --skip-external-dependencies
+${PHPEXECUTABLE} ${MEDIAWIKIDIR}/maintenance/update.php 
 # -PROCESS

@@ -6,12 +6,14 @@ mediawiki-updater does the following:
 
 * check for a new version
 * backup MySQL database
-* backup current installation
+* move current installation to backup path
 * download new MediaWiki release
 * extract new release to temporary folder
-* update current installation with new release
-* deletes the directory "vendor"
-* fetch new external libraries via git into directory "vendor"
+* copy new release
+* copying LocalSettings.php from previous version
+* copying images from previous version
+* copying skins from previous version
+* copying extensions from previous version
 * remove old backups (but keeps the latest 3)
 * run the "maintenance/update.php" script
 
@@ -20,25 +22,13 @@ mediawiki-updater does the following:
 ### bash script
 The bash script uses the following executables:
 
-* git
-* php
-* grep
-* sed
 * awk
+* basename
+* grep
+* head
+* mkdir
+* mysqldump
+* php
+* sed
 * tar
 * wget
-* unzip
-* gunzip
-* mysqldump
-* mkdir
-* xargs
-* pushd
-* popd
-* head
-
-### PowerShell script
-The PowerShell script uses the following executables:
-
-* mysqldump
-* git
-* php
