@@ -179,7 +179,7 @@ if [[ ${TAREXECUTABLE} ]]; then
     echo "downloading version '${LATEST_RELEASE}' from $URL"
 	${WGETEXECUTABLE} ${URL} -O ${TMPDIR}/${LATEST_RELEASE}.tar.gz -o /dev/null
 
-	#extract downloaded release                                                                                          
+	#extract downloaded release
 	echo "extracting '${TMPDIR}/${LATEST_RELEASE}.tar.gz'"
 	pushd ${TMPDIR} &>/dev/null
 	if ${TAREXECUTABLE} -tzf ${LATEST_RELEASE}.tar.gz &>/dev/null; then
@@ -241,5 +241,5 @@ rm -r ${TMPDIR}
 #TODO chown
 
 #execute update script
-${PHPEXECUTABLE} ${MEDIAWIKIDIR}/maintenance/update.php 
+${PHPEXECUTABLE} ${MEDIAWIKIDIR}/maintenance/run.php update.php
 # -PROCESS
